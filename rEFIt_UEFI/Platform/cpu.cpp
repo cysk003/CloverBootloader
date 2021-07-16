@@ -1441,7 +1441,8 @@ MACHINE_TYPES GetDefaultModel()
     return MacPro61;
   }
   // TODO: Add more CPU models and configure the correct machines per CPU/GFX model
-  if(gMobile) {
+  bool isMobile = getMobileFromSmbios();
+  if(isMobile) {
     switch (gCPUStructure.Model)
     {
       case CPU_MODEL_ATOM:
@@ -1459,8 +1460,7 @@ MACHINE_TYPES GetDefaultModel()
         DefaultType = MacBook21;
         break;
       case CPU_MODEL_PENRYN:
-        if ((gGraphics[0].Vendor == Nvidia) ||
-            (gGraphics[1].Vendor == Nvidia)) {
+        if ( gConf.GfxPropertiesArray.hasNvidia() ) {
           DefaultType = MacBookPro51;
         } else
           DefaultType = MacBook41;
@@ -1520,8 +1520,7 @@ MACHINE_TYPES GetDefaultModel()
         DefaultType = MacBookPro143;
         break;
       default:
-        if ((gGraphics[0].Vendor == Nvidia) ||
-            (gGraphics[1].Vendor == Nvidia)) {
+        if ( gConf.GfxPropertiesArray.hasNvidia() ) {
           DefaultType = MacBookPro51;
         } else
           DefaultType = MacBookPro83;
@@ -1570,7 +1569,7 @@ MACHINE_TYPES GetDefaultModel()
         DefaultType = MacPro51;
         break;
       case CPU_MODEL_SANDY_BRIDGE:
-        if (gGraphics[0].Vendor == Intel) {
+        if ( gConf.GfxPropertiesArray.isCardAtPosIntel(0) ) {
           DefaultType = MacMini51;
           break;
         }
@@ -1588,7 +1587,7 @@ MACHINE_TYPES GetDefaultModel()
       case CPU_MODEL_IVY_BRIDGE:
       case CPU_MODEL_IVY_BRIDGE_E5:
         DefaultType = iMac132;
-        if (gGraphics[0].Vendor == Intel) {
+        if ( gConf.GfxPropertiesArray.isCardAtPosIntel(0) ) {
           DefaultType = MacMini62;
           break;
         }
@@ -1659,14 +1658,14 @@ void FillOCCpuInfo(OC_CPU_INFO* CpuInfo)
   CpuInfo->CpuidExtSigEcx.Uint32 = (UINT32)gCPUStructure.CPUID[CPUID_81][ECX];
   CpuInfo->CpuidExtSigEdx.Uint32 = (UINT32)gCPUStructure.CPUID[CPUID_81][EDX];
   CpuInfo->Brand = (UINT8)CpuInfo->CpuidVerEbx.Bits.BrandIndex;
-  CpuInfo->MaxDiv = gCPUStructure.SubDivider;
+  CpuInfo->MaxDiv = (UINT8)gCPUStructure.SubDivider;
   //there is a fault in OC as it can't handle non-integer values. Clover does by *10.
-  CpuInfo->MinBusRatio = gCPUStructure.MinRatio / 10;
-  CpuInfo->MaxBusRatio = gCPUStructure.MaxRatio / 10;
-  CpuInfo->TurboBusRatio1 = gCPUStructure.Turbo1 /10;
-  CpuInfo->TurboBusRatio2 = gCPUStructure.Turbo2 /10;
-  CpuInfo->TurboBusRatio3 = gCPUStructure.Turbo3 /10;
-  CpuInfo->TurboBusRatio4 = gCPUStructure.Turbo4 /10;
+  CpuInfo->MinBusRatio = (UINT8)(gCPUStructure.MinRatio / 10);
+  CpuInfo->MaxBusRatio = (UINT8)(gCPUStructure.MaxRatio / 10);
+  CpuInfo->TurboBusRatio1 = (UINT8)(gCPUStructure.Turbo1 /10);
+  CpuInfo->TurboBusRatio2 = (UINT8)(gCPUStructure.Turbo2 /10);
+  CpuInfo->TurboBusRatio3 = (UINT8)(gCPUStructure.Turbo3 /10);
+  CpuInfo->TurboBusRatio4 = (UINT8)(gCPUStructure.Turbo4 /10);
   CpuInfo->PackageCount = 1; //number of started cores. Intel always start with one core.
   CpuInfo->CoreCount = gCPUStructure.Cores;
   CpuInfo->ThreadCount = gCPUStructure.Threads;

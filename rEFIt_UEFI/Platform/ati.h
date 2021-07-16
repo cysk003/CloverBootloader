@@ -97,10 +97,10 @@ typedef enum {
   CHIP_FAMILY_CARRIZO,
   CHIP_FAMILY_TOBAGO,
   CHIP_FAMILY_ELLESMERE, /* Polaris 10 */
-  CHIP_FAMILY_BAFFIN,   /* Polaris 11 */
+  CHIP_FAMILY_BAFFIN,    /* Polaris 11 */
   CHIP_FAMILY_GREENLAND, /* Polaris 12 */
-  CHIP_FAMILY_VEGA10,   /* Vega 10 */
-  CHIP_FAMILY_VEGA20,   /* Vega 20 */
+  CHIP_FAMILY_VEGA10,    /* Vega 10 */
+  CHIP_FAMILY_VEGA20,    /* Vega 20 */
   CHIP_FAMILY_NAVI10,
   CHIP_FAMILY_NAVI20,
   CHIP_FAMILY_LAST
@@ -305,11 +305,14 @@ BOOLEAN get_vramtotalsize_val(value_t *val, INTN index, BOOLEAN Sier);
 BOOLEAN get_dual_link_val(value_t *val, INTN index, BOOLEAN Sier);
 BOOLEAN get_name_pci_val(value_t *val, INTN index, BOOLEAN Sier);
 
-extern card_config_t card_configs[];
-extern radeon_card_info_t radeon_cards[];
+// Constants. Can be defined even if DONT_DEFINE_GLOBALS
+extern const radeon_card_info_t radeon_cards[];
+extern const card_config_t card_configs[];
+
+#ifndef DONT_DEFINE_GLOBALS
 extern AtiDevProp ati_devprop_list[];
 extern const CHAR8 *chip_family_name[];
-
+#endif
 
 BOOLEAN
 setup_ati_devprop (

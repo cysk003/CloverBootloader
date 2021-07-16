@@ -83,6 +83,7 @@ CONST CHAR8* IconsNames[] = {
    "os_clover",  //52 == ICON_CLOVER
    //other oses will be added below
    "os_bigsur",  //53 == ICON_BIGSUR
+   "os_monterey",  //54 == ICON_MONTEREY
   ""
 };
 const INTN IconsNamesSize = sizeof(IconsNames) / sizeof(IconsNames[0]);
@@ -99,7 +100,10 @@ ImageNight.FromPNG(ACCESS_EMB_DATA(dark), ACCESS_EMB_SIZE(dark)); \
 }
 
 
-XIcon::~XIcon() {}
+XIcon::~XIcon()
+{
+  // memory leak : we can't free (yet?) ImageSVG and ImageSVGnight because operator might have copied it
+}
 
 XIcon::XIcon(INTN Index, bool TakeEmbedded) : Id(Index), Name(), Image(), ImageNight(), Native(false),
   ImageSVG(nullptr), ImageSVGnight(nullptr), Empty(0)
@@ -121,16 +125,13 @@ XIcon& XIcon::operator=(const XIcon& src)
 {
   Id = src.Id;
   Name = src.Name;
-  if (!src.isEmpty()) {
-    Image = src.Image;
-    if (!src.ImageNight.isEmpty()) {
-      ImageNight = src.ImageNight;
-    }
-    setFilled();
-    //this moment we copy pointers. Later it will be class variables
-    ImageSVG = src.ImageSVG;
-    ImageSVGnight = src.ImageSVGnight;
-  }
+  Image = src.Image;
+  ImageNight = src.ImageNight;
+  Native = src.Native;
+  Empty = src.Empty;
+  //this moment we copy pointers. Later it will be class variables
+  ImageSVG = src.ImageSVG;
+  ImageSVGnight = src.ImageSVGnight;
   return *this;
 }
 

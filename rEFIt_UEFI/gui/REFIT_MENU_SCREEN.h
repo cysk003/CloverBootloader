@@ -114,7 +114,6 @@ extern INTN EntriesPosX, EntriesPosY;
 
 
 class REFIT_MENU_ENTRY_ITEM_ABSTRACT;
-class REFIT_MENU_ENTRY;
 class REFIT_ABSTRACT_MENU_ENTRY;
 
 typedef void (REFIT_MENU_SCREEN::*MENU_STYLE_FUNC)(IN UINTN Function, IN CONST CHAR16 *ParamText);
@@ -424,7 +423,7 @@ public:
   void AddMenuCheck(CONST CHAR8 *Text, UINTN Bit, INTN ItemNum);
   void AddMenuItemInput(INTN Inx, CONST CHAR8 *Title, BOOLEAN Cursor);
   void FreeMenu();
-  INTN FindMenuShortcutEntry(IN CHAR16 Shortcut);
+  INTN FindMenuShortcutEntry(IN char32_t Shortcut);
   UINTN RunGenericMenu(IN OUT INTN *DefaultEntryIndex, OUT REFIT_ABSTRACT_MENU_ENTRY **ChosenEntry);
   UINTN RunMenu(OUT REFIT_ABSTRACT_MENU_ENTRY **ChosenEntry);
   UINTN InputDialog();

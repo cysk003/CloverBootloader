@@ -41,7 +41,7 @@
 #include "../refit/lib.h"
 #include "../gui/REFIT_MENU_SCREEN.h"
 #include "../gui/REFIT_MAINMENU_SCREEN.h"
-#include "../Platform/Self.h"
+#include "../Settings/Self.h"
 #include "../Platform/Volumes.h"
 #include "../libeg/XTheme.h"
 #include "../include/OSFlags.h"
@@ -81,7 +81,7 @@
 
 STATIC BOOLEAN AddToolEntry(IN CONST XStringW& LoaderPath, IN CONST CHAR16 *FullTitle, IN CONST CHAR16 *LoaderTitle,
                             IN REFIT_VOLUME *Volume, const XIcon& Image,
-                            IN CHAR16 ShortcutLetter, IN CONST XString8Array& Options)
+                            IN char32_t ShortcutLetter, IN CONST XString8Array& Options)
 {
   REFIT_MENU_ENTRY_LOADER_TOOL *Entry;
   // Check the loader exists
@@ -90,7 +90,7 @@ STATIC BOOLEAN AddToolEntry(IN CONST XStringW& LoaderPath, IN CONST CHAR16 *Full
     return FALSE;
   }
   // Allocate the entry
-  Entry = new REFIT_MENU_ENTRY_LOADER_TOOL();
+  Entry = new REFIT_MENU_ENTRY_LOADER_TOOL;
 
   if (FullTitle) {
     Entry->Title.takeValueFrom(FullTitle);
@@ -124,7 +124,7 @@ STATIC void AddCloverEntry(IN CONST XStringW& LoaderPath, IN CONST CHAR16 *Loade
 //  EFI_STATUS        Status;
 
   // prepare the menu entry
-  Entry = new REFIT_MENU_ENTRY_CLOVER();
+  Entry = new REFIT_MENU_ENTRY_CLOVER;
   Entry->Title.takeValueFrom(LoaderTitle);
 //  Entry->Tag            = TAG_CLOVER;
   Entry->Row            = 1;

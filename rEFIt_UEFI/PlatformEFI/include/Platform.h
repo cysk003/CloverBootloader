@@ -24,7 +24,7 @@ Headers collection for procedures
 
 #include "../include/OneLinerMacros.h"
 
-//#include "Self.h"
+//#include "../Settings/Self.h"
 #include "../entry_scan/common.h"
 #include "../libeg/BmLib.h"
 #include "../Platform/BootLog.h"
@@ -37,6 +37,10 @@ Headers collection for procedures
 #include "../Platform/Utils.h"
 #endif
 
+
+#if defined(_MSC_VER) && !defined(__PRETTY_FUNCTION__)
+#define __PRETTY_FUNCTION__ __FUNCSIG__
+#endif
 
 
 // Jief : temporary rename

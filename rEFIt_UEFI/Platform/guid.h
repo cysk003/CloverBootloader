@@ -8,6 +8,7 @@
 #ifndef PLATFORM_GUID_H_
 #define PLATFORM_GUID_H_
 
+#include "Utils.h"
 #include "../cpp_foundation/XStringArray.h"
 #include "../cpp_foundation/unicode_conversions.h"
 
@@ -16,6 +17,25 @@ extern "C" {
 }
 
 extern "C" EFI_GUID  gEfiMiscSubClassGuid;
+
+/*
+ * Wrapper class to bring some syntaxic sugar : initialisation at construction, assignment, == operator, etc.
+ */
+class EFI_GUIDClass : public EFI_GUID
+{
+public:
+  EFI_GUIDClass() { Data1 = 0; Data2 = 0; Data3 = 0; memset(Data4, 0, sizeof(Data4)); }
+
+  EFI_GUIDClass(const EFI_GUID& other) { Data1 = other.Data1; Data2 = other.Data2; Data3 = other.Data3; memcpy(Data4, other.Data4, sizeof(Data4)); }
+  
+  bool operator == (const EFI_GUID& other) const {
+    if ( !(Data1 == other.Data1) ) return false;
+    if ( !(Data2 == other.Data2) ) return false;
+    if ( !(Data3 == other.Data3) ) return false;
+    if ( !(memcmp(Data4, other.Data4, sizeof(Data4)) == 0) ) return false;
+    return true;
+  }
+};
 
 extern const XString8 nullGuidAsString;
 extern EFI_GUID nullGuid;
@@ -114,12 +134,12 @@ StrHToBuf (
 
   for(Index4IsValidGuidAsciiString = 0; Index4IsValidGuidAsciiString < StrLength; Index4IsValidGuidAsciiString++) {
 
-    if ((Str[Index4IsValidGuidAsciiString] >= (__typeof__(*Str))'a') && (Str[Index4IsValidGuidAsciiString] <= (__typeof__(*Str))'f')) {
-      Digit = (UINT8) (Str[Index4IsValidGuidAsciiString] - (__typeof__(*Str))'a' + 0x0A);
-    } else if ((Str[Index4IsValidGuidAsciiString] >= (__typeof__(*Str))'A') && (Str[Index4IsValidGuidAsciiString] <= (__typeof__(*Str))'F')) {
+    if ((Str[Index4IsValidGuidAsciiString] >= (decltype(*Str))'a') && (Str[Index4IsValidGuidAsciiString] <= (decltype(*Str))'f')) {
+      Digit = (UINT8) (Str[Index4IsValidGuidAsciiString] - (decltype(*Str))'a' + 0x0A);
+    } else if ((Str[Index4IsValidGuidAsciiString] >= (decltype(*Str))'A') && (Str[Index4IsValidGuidAsciiString] <= (decltype(*Str))'F')) {
       Digit = (UINT8) (Str[Index4IsValidGuidAsciiString] - L'A' + 0x0A);
-    } else if ((Str[Index4IsValidGuidAsciiString] >= (__typeof__(*Str))'0') && (Str[Index4IsValidGuidAsciiString] <= (__typeof__(*Str))'9')) {
-      Digit = (UINT8) (Str[Index4IsValidGuidAsciiString] - (__typeof__(*Str))'0');
+    } else if ((Str[Index4IsValidGuidAsciiString] >= (decltype(*Str))'0') && (Str[Index4IsValidGuidAsciiString] <= (decltype(*Str))'9')) {
+      Digit = (UINT8) (Str[Index4IsValidGuidAsciiString] - (decltype(*Str))'0');
     } else {
       return EFI_INVALID_PARAMETER;
     }
@@ -148,7 +168,7 @@ StrHToBuf (
  */
 template <typename T, enable_if( is_char_ptr(T)  ||  is___String(T) )>
 EFI_STATUS
-StrToGuidLE (
+StrToGuidBE (
            const T& t,
            OUT EFI_GUID *Guid
            )
@@ -156,7 +176,18 @@ StrToGuidLE (
   EFI_STATUS Status;
   UINT8 GuidLE[16];
   
+  if ( Guid == NULL ) {
+    log_technical_bug("%s : call with Guid==NULL", __PRETTY_FUNCTION__);
+    return EFI_UNSUPPORTED;
+  }
+
   auto Str = _xstringarray__char_type<T>::getCharPtr(t);
+
+  if ( Str == NULL ) {
+    memset(Guid, 0, sizeof(EFI_GUID));
+    return EFI_SUCCESS;
+  }
+
 
   Status = StrHToBuf (&GuidLE[0], 4, Str);
   if ( Status != EFI_SUCCESS ) return Status;
@@ -211,14 +242,15 @@ StrToGuidLE (
   if ( Status != EFI_SUCCESS ) return Status;
 
   if (Guid) {
-    CopyMem((UINT8*)Guid, &GuidLE[0], sizeof(EFI_GUID));
+    memcpy((UINT8*)Guid, &GuidLE[0], sizeof(EFI_GUID));
   }
 
   return EFI_SUCCESS;
 }
 
 
-XStringW GuidBeToStr(const EFI_GUID& Guid);
+XString8 GuidBeToXString8(const EFI_GUID& Guid);
+XStringW GuidBeToXStringW(const EFI_GUID& Guid);
 XString8 GuidLEToXString8(const EFI_GUID& Guid);
 XStringW GuidLEToXStringW(const EFI_GUID& Guid);
 

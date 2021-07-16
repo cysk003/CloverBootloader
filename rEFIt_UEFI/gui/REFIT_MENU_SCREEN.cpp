@@ -56,7 +56,7 @@
 #include "../Platform/Nvram.h"
 #include "../refit/screen.h"
 #include "../Platform/Events.h"
-#include "../Platform/Self.h"
+#include "../Settings/Self.h"
 #include "../Platform/Volumes.h"
 #include "../include/OSFlags.h"
 
@@ -387,7 +387,7 @@ void REFIT_MENU_SCREEN::HidePointer()
 EFI_STATUS REFIT_MENU_SCREEN::MouseBirth()
 {
 
-  //if ( !mPointer ) mPointer = new XPointer();
+  //if ( !mPointer ) mPointer = new XPointer;
   return mPointer.MouseBirth();
 }
 
@@ -398,7 +398,7 @@ void REFIT_MENU_SCREEN::KillMouse()
 
 void REFIT_MENU_SCREEN::AddMenuInfoLine_f(CONST char *format, ...)
 {
-  XStringW* s = new XStringW();
+  XStringW* s = new XStringW;
   VA_LIST va;
 	VA_START(va, format);
   s->vSWPrintf(format, va);
@@ -431,7 +431,7 @@ void REFIT_MENU_SCREEN::FreeMenu()
   InfoLines.setEmpty();
 }
 
-INTN REFIT_MENU_SCREEN::FindMenuShortcutEntry(IN CHAR16 Shortcut)
+INTN REFIT_MENU_SCREEN::FindMenuShortcutEntry(IN char32_t Shortcut)
 {
   if (Shortcut >= 'a' && Shortcut <= 'z')
     Shortcut -= ('a' - 'A');

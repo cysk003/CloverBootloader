@@ -122,19 +122,19 @@ UINT8 *Base64DecodeClover(IN CONST CHAR8 *EncodedData, size_t EncodedSize, OUT U
 	}
 
 	// to simplify, we'll allocate the same size, although smaller size is needed
-	DecodedData = (__typeof__(DecodedData))AllocateZeroPool(EncodedSize);
+	DecodedData = (__typeof__(DecodedData))malloc(EncodedSize); // use malloc, or validator won't compile
 
 	base64_init_decodestate(&state_in);
 	DecodedSizeInternal = base64_decode_block(EncodedData, EncodedSize, (char*) DecodedData, &state_in);
 
 	if ( DecodedSizeInternal <= 0 ) {
-    FreePool(DecodedData);
+    free(DecodedData);
     DecodedData = NULL;
   }
 
 	if (DecodedSize != NULL) {
     if ( DecodedSizeInternal < 0 ) {
-      panic_ask("Base64DecodeClover : DecodedSizeInternal < 0");
+      log_technical_bug("Base64DecodeClover : DecodedSizeInternal < 0");
       *DecodedSize = 0; // better 0 than a cast of a negative number
     }else{
       *DecodedSize = (UINTN)DecodedSizeInternal;

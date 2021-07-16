@@ -5,7 +5,7 @@
 #   define __attribute__(x)
 #endif
 
-#ifndef __cplusplus // C doesn't know bool
+#if !defined(__cplusplus) && !defined(bool) // C doesn't know bool
 #define bool unsigned char
 #endif
 
@@ -34,14 +34,17 @@ void panic(const char* format, ...) __attribute__((__format__(__printf__, 1, 2))
 ;
 
 void panic_ask(const char* format, ...) __attribute__((__format__(__printf__, 1, 2)));
+void log_technical_bug(const char* format, ...) __attribute__((__format__(__printf__, 1, 2)));
 
 
 #endif
 
+#ifndef assert
 #ifdef _MSC_VER
 # define assert(expr) _assert(expr, "Expression \"%s\" failed in %s", #expr, __FUNCSIG__)
 #else
 # define assert(expr) _assert(expr, "Expression \"%s\" failed in %s", #expr, __PRETTY_FUNCTION__)
+#endif
 #endif
 #define assertf(...) _assert(__VA_ARGS__)
 
