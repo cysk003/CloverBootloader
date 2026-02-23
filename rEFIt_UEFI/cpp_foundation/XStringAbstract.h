@@ -1075,7 +1075,7 @@ public:
     takeValueFrom(S);
   }
 
-  // TEMPORARILY DISABLED
+//  TEMPORARILY DISABLED
 //	template<typename O>
 //	explicit __String<T, ThisXStringClass>(const O* S) { Init(0);
 //takeValueFrom(S); }
