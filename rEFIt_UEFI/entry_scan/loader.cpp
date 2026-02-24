@@ -466,6 +466,7 @@ STATIC XBool isFirstRootUUID(REFIT_VOLUME *Volume) {
 }
 
 // Set Entry->VolName to .disk_label.contentDetails if it exists
+// Set Entry/Volume display name to .disk_label.contentDetails if it exists
 STATIC EFI_STATUS GetOSXVolumeName(LOADER_ENTRY *Entry) {
   EFI_STATUS Status = EFI_NOT_FOUND;
   CONST CHAR16 *targetNameFile =
@@ -476,7 +477,10 @@ STATIC EFI_STATUS GetOSXVolumeName(LOADER_ENTRY *Entry) {
     Status = egLoadFile(Entry->Volume->RootDir, targetNameFile,
                         (UINT8 **)&fileBuffer, &fileLen);
     if (!EFI_ERROR(Status)) {
-      Entry->DisplayedVolName.strncpy(fileBuffer, fileLen);
+      if (Entry->DisplayedVolName.isEmpty()) {
+        Entry->DisplayedVolName.strncpy(fileBuffer, fileLen);
+      }
+      Entry->Volume->osxVolumeName.strncpy(fileBuffer, fileLen);
       DBG("Created name:%ls\n", Entry->DisplayedVolName.wc_str());
 
       FreePool(fileBuffer);
