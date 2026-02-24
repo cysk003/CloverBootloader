@@ -703,7 +703,8 @@ void LOADER_ENTRY::FilterKernelPatches() {
   }
 }
 
-void LOADER_ENTRY::FilterBootPatches() {
+void LOADER_ENTRY::FilterBootPatches()
+{
   if (gSettings.KernelAndKextPatches.BootPatches.notEmpty()) {
     DBG("Filtering BootPatches:\n");
     for (size_t i = 0; i < gSettings.KernelAndKextPatches.BootPatches.size(); ++i) {
@@ -1715,15 +1716,16 @@ void LOADER_ENTRY::StartLoader() {
           mOpenCoreConfiguration.Kernel.Force.Values[kextIdx]
               ->ExecutablePath.Value);
     }
-    FilterKextsToBlock();
-    size_t blockCount = 0;
-    for (size_t blockIdx = 0;
-         blockIdx < gSettings.KernelAndKextPatches.KextsToBlock.size(); blockIdx++) {
-      if (gSettings.KernelAndKextPatches.KextsToBlock[blockIdx].ShouldBlock(macOSVersion)) {
-        blockCount++;
-      }
-    }
-	DBG("found %zu kexts to block\n", blockCount);
+//    FilterKextsToBlock();  
+//    size_t blockCount = 0;
+//    for (size_t blockIdx = 0;
+//         blockIdx < gSettings.KernelAndKextPatches.KextsToBlock.size(); blockIdx++) {
+//      if (gSettings.KernelAndKextPatches.KextsToBlock[blockIdx].ShouldBlock(macOSVersion)) {
+//        blockCount++;
+//      }
+//    }
+//	DBG("found %zu kexts to block\n", blockCount);
+    size_t blockCount = gSettings.KernelAndKextPatches.KextsToBlock.size();
     if (blockCount > 0) {
       mOpenCoreConfiguration.Kernel.Block.Count = (UINT32)blockCount;
       mOpenCoreConfiguration.Kernel.Block.AllocCount =
@@ -1741,16 +1743,16 @@ void LOADER_ENTRY::StartLoader() {
       for (size_t blockIdx = 0;
            blockIdx < gSettings.KernelAndKextPatches.KextsToBlock.size(); blockIdx++) {
         const auto& blockEntry = gSettings.KernelAndKextPatches.KextsToBlock[blockIdx];
-        if (!blockEntry.ShouldBlock(macOSVersion)) {
-          continue;
-        }
+//        if (!blockEntry.ShouldBlock(macOSVersion)) {
+//          continue;
+//        }
 
         mOpenCoreConfiguration.Kernel.Block.Values[blockValueIdx] =
             (__typeof_am__(*mOpenCoreConfiguration.Kernel.Block.Values))AllocateZeroPool(
                 mOpenCoreConfiguration.Kernel.Block.ValueSize);
 //        memset(mOpenCoreConfiguration.Kernel.Block.Values[blockValueIdx], 0,
 //              mOpenCoreConfiguration.Kernel.Block.ValueSize);
-        mOpenCoreConfiguration.Kernel.Block.Values[blockValueIdx]->Enabled = 1;
+        mOpenCoreConfiguration.Kernel.Block.Values[blockValueIdx]->Enabled = blockEntry.ShouldBlock(macOSVersion);
         OC_STRING_ASSIGN(
             mOpenCoreConfiguration.Kernel.Block.Values[blockValueIdx]->Arch,
             OC_BLOB_GET(&mOpenCoreConfiguration.Kernel.Scheme.KernelArch));
