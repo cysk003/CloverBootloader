@@ -2,7 +2,7 @@
 
 #  ebuild.sh ->ebuild.sh  //renamed to be unique file begining from E
 #  Script for building CloverEFI source under OS X or Linux
-#  Supported chainloads(compilers) are XCODE*, GCC*, UNIXGCC and CLANG
+#  Supported chainloads(compilers) are XCODE*, GCC*, UNIXGCC and LLVM
 #
 #
 #  Created by Jadran Puharic on 1/6/12.
@@ -54,19 +54,21 @@ export PYTHON_COMMAND=python3
 
 # if building through Xcode, then TOOLCHAIN_DIR is not defined
 # checking if it is where CloverGrowerPro put it
-if [[ "$SYSNAME" == Linux ]]; then
-  export TOOLCHAIN=GCC152
-  TOOLCHAIN_DIR=${TOOLCHAIN_DIR:-/usr}
-else
-  if [[ -d ~/src/opt/local ]]; then
-    TOOLCHAIN_DIR=~/src/opt/local
-  else
-    TOOLCHAIN_DIR=${TOOLCHAIN_DIR:-"$CLOVERROOT"/toolchain}
-  fi
-  export DIR_MAIN=${DIR_MAIN:-"$CLOVERROOT"/toolchain}
-fi
-export TOOLCHAIN_DIR
-echo "TOOLCHAIN_DIR: $TOOLCHAIN_DIR"
+#if [[ "$SYSNAME" == Linux ]]; then
+#  export TOOLCHAIN=GCC152
+#  TOOLCHAIN_DIR=${TOOLCHAIN_DIR:-/usr}
+#else
+#  if [[ "$TOOLCHAIN" == LLVM ]]; then
+#    TOOLCHAIN_DIR=/opt/local
+#  elif [[ -d ~/src/opt/local ]]; then
+#    TOOLCHAIN_DIR=~/src/opt/local
+#  else
+#    TOOLCHAIN_DIR=${TOOLCHAIN_DIR:-"$CLOVERROOT"/toolchain}
+#  fi
+#  export DIR_MAIN=${DIR_MAIN:-"$CLOVERROOT"/toolchain}
+#fi
+#export TOOLCHAIN_DIR
+#echo "TOOLCHAIN_DIR: $TOOLCHAIN_DIR"
 
 VBIOSPATCHCLOVEREFI=0
 ONLYSATA0PATCH=0
@@ -74,6 +76,7 @@ USE_BIOS_BLOCKIO=0
 USE_LOW_EBDA=1
 CLANG=0
 GENPAGE=0
+LLVM=0
 
 FORCEREBUILD=0
 NOBOOTFILES=0
@@ -246,8 +249,8 @@ usage() {
     print_option_help "-v, --version" "print the version information and exit"
     echo
     echo "Toolchain:"
-#    print_option_help "-clang"     "use XCode Clang toolchain"
-#    print_option_help "-llvm"      "use LLVM toolchain"
+#   print_option_help "-clang"     "use Clang toolchain"
+    print_option_help "-llvm"      "use LLVM toolchain"
 #    print_option_help "-gcc49"     "use GCC 4.9 toolchain"
     print_option_help "-gcc53"     "use GCC 5.3 toolchain, including gcc-11"
     print_option_help "-gcc131"    "use GCC 13.1 toolchain, including gcc-14.2"
@@ -258,7 +261,7 @@ usage() {
     print_option_help "-xcode5"     "use XCode 5 toolchain, "
     print_option_help "-xcode8"     "use XCode 8 toolchain  [Default]"
     print_option_help "-xcode14"     "use XCode 14 toolchain"
-    print_option_help "-xcode15"     "use XCode 15 toolchain"
+    print_option_help "-xcode16"     "use XCode 16-26 toolchain"
     print_option_help "-t TOOLCHAIN, --tagname=TOOLCHAIN" "force to use a specific toolchain"
     echo
     echo "Target:"
@@ -309,7 +312,7 @@ checkCmdlineArguments() {
         local option=$1
         shift
         case "$option" in
-            -clang  | --clang)   TOOLCHAIN=XCLANG ; CLANG=1 ;;
+            -llvm  | --llvm)   TOOLCHAIN=LLVM ; CLANG=1 ;;
             -xcode5  | --xcode5 )  TOOLCHAIN=XCODE5 ; CLANG=1 ;;
             -xcode8  | --xcode8 )  TOOLCHAIN=XCODE8 ; CLANG=1 ;;
             -xcode14 | --xcode14 )  TOOLCHAIN=XCODE14 ; CLANG=1 ;;
@@ -461,6 +464,11 @@ checkToolchain() {
     ./buildnasm.sh
   fi
 
+  if [[ $TOOLCHAIN == LLVM ]]; then
+    export LLVM_PREFIX="/opt/local/bin/"
+    export LLVM_BIN="/opt/local/libexec/llvm-19/bin/"
+  fi
+
   echo "NASM_PREFIX: $NASM_PREFIX"
 
   #NASM_VER=`nasm -v | awk '/version/ {print $3}'`
@@ -474,7 +482,8 @@ checkToolchain() {
 
 # Main build script
 MainBuildScript() {
-    checkCmdlineArguments $@
+ #   checkCmdlineArguments $@
+
     checkToolchain
 
  #   local repoRev=$(git describe --tags $(git rev-list --tags --max-count=1﻿))
@@ -585,7 +594,7 @@ MainBuildScript() {
     [[ "$ONLYSATA0PATCH" -ne 0 ]] && addEdk2BuildMacro 'ONLY_SATA_0'
     [[ "$USE_LOW_EBDA" -ne 0 ]] && addEdk2BuildMacro 'USE_LOW_EBDA'
     [[ -d "$WORKSPACE/MdeModulePkg/Universal/Variable/EmuRuntimeDxe" ]] && addEdk2BuildMacro 'HAVE_LEGACY_EMURUNTIMEDXE'
-    [[ "$CLANG" -ne 0 ]] && addEdk2BuildMacro 'CLANG'
+    [[ "$LLVM" -ne 0 ]] && addEdk2BuildMacro 'LLVM'
     [[ "$ENABLE_MODERN_CPU" -ne 0 ]] && addEdk2BuildMacro 'ENABLE_MODERN_CPU_QUIRKS'
 
     local cmd="${EDK2_BUILD_OPTIONS[@]}"
@@ -603,6 +612,8 @@ MainBuildScript() {
     echo "Running edk2 build for Clover$TARGETARCH using the command:"
     echo "$cmd"
     echo
+
+    
 
     # Build Clover version
     if (( $SkipAutoGen == 0 )) || (( $FORCEREBUILD == 1 )); then
@@ -914,6 +925,24 @@ MainPostBuildScript() {
 export LC_ALL=POSIX
 
 startBuildEpoch=$(date -u "+%s")
+
+checkCmdlineArguments $@
+
+if [[ "$SYSNAME" == Linux ]]; then
+  export TOOLCHAIN=GCC152
+  TOOLCHAIN_DIR=${TOOLCHAIN_DIR:-/usr}
+else
+  if [[ "$TOOLCHAIN" == LLVM ]]; then
+    TOOLCHAIN_DIR=/opt/local
+  elif [[ -d ~/src/opt/local ]]; then
+    TOOLCHAIN_DIR=~/src/opt/local
+  else
+    TOOLCHAIN_DIR=${TOOLCHAIN_DIR:-"$CLOVERROOT"/toolchain}
+  fi
+  export DIR_MAIN=${DIR_MAIN:-"$CLOVERROOT"/toolchain}
+fi
+export TOOLCHAIN_DIR
+echo "TOOLCHAIN_DIR: $TOOLCHAIN_DIR"
 
 # Add toolchain bin directory to the PATH
 if [[ "$SYSNAME" != Linux ]]; then
