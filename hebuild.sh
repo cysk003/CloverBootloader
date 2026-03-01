@@ -2,7 +2,7 @@
 
 #  ebuild.sh ->ebuild.sh  //renamed to be unique file begining from E
 #  Script for building CloverEFI source under OS X or Linux
-#  Supported chainloads(compilers) are XCODE*, GCC*, UNIXGCC and LLVM
+#  Supported chainloads(compilers) are XCODE*, GCC*, UNIXGCC and CLANG
 #
 #
 #  Created by Jadran Puharic on 1/6/12.
@@ -36,7 +36,7 @@ PLATFORMFILE=
 MODULEFILE=
 TARGETRULE=
 
-SCRIPT_VERS="2020-04-20"
+SCRIPT_VERS="2026-03-01"
 
 # Macro
 M_NOGRUB=0
@@ -58,7 +58,7 @@ export PYTHON_COMMAND=python3
 #  export TOOLCHAIN=GCC152
 #  TOOLCHAIN_DIR=${TOOLCHAIN_DIR:-/usr}
 #else
-#  if [[ "$TOOLCHAIN" == LLVM ]]; then
+#  if [[ "$TOOLCHAIN" == XCLANG ]]; then
 #    TOOLCHAIN_DIR=/opt/local
 #  elif [[ -d ~/src/opt/local ]]; then
 #    TOOLCHAIN_DIR=~/src/opt/local
@@ -206,7 +206,7 @@ isNASMGood() {
   local nasmver=$( "${1}" -v | grep 'NASM version' | awk '{print $3}' )
 
   case "$nasmver" in
-  2.12.0[2-9]* | 2.12.[1-9]* | 2.1[3-9]* | 2.[2-9]* | [3-9]* | [1-9][1-9]*)
+  2.16.0[2-9]* | 2.16.[1-9]* | 2.1[3-9]* | 2.[2-9]* | [3-9]* | [1-9][1-9]*)
 	result=0;;
   *)
 	printf "\n\e[1;33mUnknown or unsupported NASM version found at:\n${1}\n\n\e[0m";;
@@ -249,7 +249,7 @@ usage() {
     print_option_help "-v, --version" "print the version information and exit"
     echo
     echo "Toolchain:"
-#   print_option_help "-clang"     "use Clang toolchain"
+    print_option_help "-clang"     "use Clang toolchain"
     print_option_help "-llvm"      "use LLVM toolchain"
 #    print_option_help "-gcc49"     "use GCC 4.9 toolchain"
     print_option_help "-gcc53"     "use GCC 5.3 toolchain, including gcc-11"
@@ -281,16 +281,15 @@ usage() {
     print_option_help "--genpage" "dynamically generate page table under ebda"
     print_option_help "--no-usb" "disable USB support"
     print_option_help "--no-lto" "disable Link Time Optimisation"
-    print_option_help "--ext-pre" "deprecated option"
-    print_option_help "--ext-co" "deprecated option"
-    print_option_help "--ext-build" "deprecated option"
-    print_option_help "--edk2shell <MinimumShell|FullShell>" "copy edk2 Shell to EFI tools dir"
+    print_option_help "--no-mcpu" "disable AutoModernCPUQuirks" 
+ #   print_option_help "--edk2shell <MinimumShell|FullShell>" "copy edk2 Shell to EFI tools dir"
     echo
     echo "build options:"
     print_option_help "-fr, --force-rebuild" "force rebuild all targets"
+    print_option_help "-mc, --x64-mcp" " generate boot7 file with drivers using legacy BIOS functions"
     print_option_help "-nb, --no-bootfiles" "don't generate boot files"
     echo
-    echo "Report bugs to      https://github.com/CloverHackyColor/CloverBootloader/issues"
+    echo "Report bugs to     https://github.com/CloverHackyColor/CloverBootloader/issues"
 }
 
 # Manage option argument
@@ -313,6 +312,7 @@ checkCmdlineArguments() {
         shift
         case "$option" in
             -llvm  | --llvm)   TOOLCHAIN=LLVM ; CLANG=1 ;;
+            -clang  | --clang)   TOOLCHAIN=XCLANG ; CLANG=1 ;;
             -xcode5  | --xcode5 )  TOOLCHAIN=XCODE5 ; CLANG=1 ;;
             -xcode8  | --xcode8 )  TOOLCHAIN=XCODE8 ; CLANG=1 ;;
             -xcode14 | --xcode14 )  TOOLCHAIN=XCODE14 ; CLANG=1 ;;
@@ -325,6 +325,7 @@ checkCmdlineArguments() {
             -gcc131  | --gcc131)   TOOLCHAIN=GCC131   ;;
             -gcc151  | --gcc151)   TOOLCHAIN=GCC151   ;;
             -gcc152  | --gcc152)   TOOLCHAIN=GCC152   ;;
+            -xcode  | --xcode )  TOOLCHAIN=XCODE32 ;;
             -x64 | --x64)
 #                printf "\`%s' is deprecated because Clover is 64 bit only. This message will be removed soon\n" "$option" 1>&2
 #                sleep 4
@@ -337,12 +338,12 @@ checkCmdlineArguments() {
 #            -d | -debug | --debug)  BUILDTARGET=DEBUG ;;
 #            -r | -release | --release) BUILDTARGET=RELEASE ;;
             -a) TARGETARCH=$(argument $option "$@")
-                printf "\`%s' is deprecated because Clover is 64 bit only. This message will be removed soon\n" "$option" 1>&2
-                sleep 4
+#                printf "\`%s' is deprecated because Clover is 64 bit only. This message will be removed soon\n" "$option" 1>&2
+#                sleep 4
                 ;;
             --arch=*)
-                printf "\`%s' is deprecated because Clover is 64 bit only. This message will be removed soon\n" "$option" 1>&2
-                sleep 4
+#                printf "\`%s' is deprecated because Clover is 64 bit only. This message will be removed soon\n" "$option" 1>&2
+#                sleep 4
                 ;;
             -p) PLATFORMFILE=$(argument $option "$@"); shift
                 ;;
@@ -464,9 +465,9 @@ checkToolchain() {
     ./buildnasm.sh
   fi
 
-  if [[ $TOOLCHAIN == LLVM ]]; then
-    export LLVM_PREFIX="/opt/local/bin/"
-    export LLVM_BIN="/opt/local/libexec/llvm-19/bin/"
+  if [[ $TOOLCHAIN == XCLANG ]]; then
+    export XCLANG_PREFIX="/opt/local/bin/"
+    export XCLANG_BIN="/opt/local/libexec/llvm-22/bin/"
   fi
 
   echo "NASM_PREFIX: $NASM_PREFIX"
@@ -483,25 +484,7 @@ checkToolchain() {
 # Main build script
 MainBuildScript() {
  #   checkCmdlineArguments $@
-
-    checkToolchain
-
- #   local repoRev=$(git describe --tags $(git rev-list --tags --max-count=1﻿))
-	local repoRev=$(git describe --tags --abbrev=0)
-
-    #
-    # we are building the same rev as before?
-    local SkipAutoGen=0
-    #
-    if [[ -f "$CLOVERROOT"/Version.h ]]; then
-        local builtedRev=$(cat "$CLOVERROOT"/Version.h  \
-                           | grep '#define FIRMWARE_REVISION L' | awk -v FS="(\"|\")" '{print $2}')
-#    echo "old revision ${builtedRev}" >echo.txt
-#    echo "new revision ${repoRev}" >>echo.txt
-
-        if [ "${repoRev}" = "${builtedRev}" ]; then SkipAutoGen=1; fi
-    fi
-
+ 
     #
     # Setup workspace if it is not set
     #
@@ -530,7 +513,34 @@ MainBuildScript() {
         echo "Building from: $WORKSPACE"
     fi
 
+    checkToolchain
+echo "Toolchain=$TOOLCHAIN at $TOOLCHAIN_DIR "
+
+
+export BUILD_DIR="${WORKSPACE}/Build/Clover/${BUILDTARGET}_${TOOLCHAIN}"
+export BUILD_DIR_ARCH="${BUILD_DIR}/$TARGETARCH"
+echo "BUILD_DIR: $BUILD_DIR"
+echo "BUILD_DIR_ARCH: $BUILD_DIR_ARCH"
+
+ #   local repoRev=$(git describe --tags $(git rev-list --tags --max-count=1﻿))
+	local repoRev=$(git describe --tags --abbrev=0)
+
+    #
+    # we are building the same rev as before?
+    local SkipAutoGen=0
+    #
+    if [[ -f "$CLOVERROOT"/Version.h ]]; then
+        local builtedRev=$(cat "$CLOVERROOT"/Version.h  \
+                           | grep '#define FIRMWARE_REVISION L' | awk -v FS="(\"|\")" '{print $2}')
+#    echo "old revision ${builtedRev}" >echo.txt
+#    echo "new revision ${repoRev}" >>echo.txt
+
+        if [ "${repoRev}" = "${builtedRev}" ]; then SkipAutoGen=1; fi
+    fi
+
+
     export CLOVER_PKG_DIR="$CLOVERROOT"/CloverPackage/CloverV2
+    echo "CLOVER_PKG_DIR: $CLOVER_PKG_DIR"
 
     # Cleaning part of the script if we have told to do it
     if [[ "$TARGETRULE" == cleanpkg ]]; then
@@ -613,8 +623,6 @@ MainBuildScript() {
     echo "$cmd"
     echo
 
-    
-
     # Build Clover version
     if (( $SkipAutoGen == 0 )) || (( $FORCEREBUILD == 1 )); then
 
@@ -633,6 +641,25 @@ MainBuildScript() {
       fi
       echo "#define REVISION_STR \"Clover revision: ${clover_revision} $sha1\"" >> "$CLOVERROOT"/Version.h
 #      echo "#define REVISION_STR \"Clover revision: ${clover_revision}\"" >> "$CLOVERROOT"/Version.h
+
+      rev_date=$(git show -s --format=%ci $(git rev-parse HEAD))
+      echo "#define REVISION_DATE \"${rev_date}\"" >> "$CLOVERROOT"/Version.h
+      COMMIT_HASH="$(git rev-parse HEAD)"
+      echo "#define COMMIT_HASH \"$COMMIT_HASH\"" >> "$CLOVERROOT"/Version.h
+      #build_id_date="$(date +%Y%m%d%H%M%S)"
+      build_id_date="$(git show -s --format=%cd --date=format:%Y%m%d%H%M%S)"
+      number_of_commit="$(git rev-list tags/$(git describe --tags --abbrev=0)..HEAD --count)"
+      if [ $number_of_commit -gt 0 ]
+      then
+        build_id="$build_id_date"-"${COMMIT_HASH::7}"
+      else
+        build_id="$build_id_date"-"${COMMIT_HASH::7}"-"$clover_revision"
+      fi
+      if [[ -n $(git status -s) ]]
+      then
+        build_id="$build_id"-dirty
+      fi
+      echo "#define BUILD_ID \"$build_id\"" >> "$CLOVERROOT"/Version.h
 
       local clover_build_info="Args: "
       if [[ -n "$@" ]]; then
@@ -723,10 +750,10 @@ MainPostBuildScript() {
 #  fi
   export BOOTSECTOR_BIN_DIR="$CLOVERROOT"/CloverEFI/BootSector/bin
 	if (( $NOBOOTFILES == 0 )); then
-    echo Compressing DUETEFIMainFv.FV ...
+    echo Compressing DUETEFIMainFv.FV ... at "${BUILD_DIR}/FV/DUETEFIMAINFV${TARGETARCH}.Fv"
     "$BASETOOLS_DIR"/LzmaCompress -e -o "${BUILD_DIR}/FV/DUETEFIMAINFV${TARGETARCH}.z" "${BUILD_DIR}/FV/DUETEFIMAINFV${TARGETARCH}.Fv"
 
-    echo Compressing DxeCore.efi ...
+    echo Compressing DxeCore.efi ... "$BUILD_DIR_ARCH/DxeCore.efi"
     "$BASETOOLS_DIR"/LzmaCompress -e -o "${BUILD_DIR}/FV/DxeMain${TARGETARCH}.z" "$BUILD_DIR_ARCH/DxeCore.efi"
 
     echo Compressing DxeIpl.efi ...
@@ -810,7 +837,7 @@ MainPostBuildScript() {
 
     # Mandatory drivers
     echo "Copy Mandatory drivers:"
-    binArray=( FSInject XhciDxe AudioDxe )
+    binArray=( XhciDxe EnglishDxe )
     for efi in "${binArray[@]}"
     do
       copyBin "$BUILD_DIR_ARCH"/$efi.efi "$CLOVER_PKG_DIR"/EFI/CLOVER/drivers/$DRIVERS_LEGACY/$efi.efi
@@ -932,7 +959,7 @@ if [[ "$SYSNAME" == Linux ]]; then
   export TOOLCHAIN=GCC152
   TOOLCHAIN_DIR=${TOOLCHAIN_DIR:-/usr}
 else
-  if [[ "$TOOLCHAIN" == LLVM ]]; then
+  if [[ "$TOOLCHAIN" == XCLANG ]]; then
     TOOLCHAIN_DIR=/opt/local
   elif [[ -d ~/src/opt/local ]]; then
     TOOLCHAIN_DIR=~/src/opt/local
@@ -950,8 +977,19 @@ if [[ "$SYSNAME" != Linux ]]; then
 fi
 
 MainBuildScript $@
+
 export BUILD_DIR="${WORKSPACE}/Build/Clover/${BUILDTARGET}_${TOOLCHAIN}"
 export BUILD_DIR_ARCH="${BUILD_DIR}/$TARGETARCH"
+
+rm -rf ${WORKSPACE}/Build/*.efi
+rm -rf ${WORKSPACE}/Build/*.zip
+
+#extract build_id from efi instead of Version.h to be 100% sure that name correspond to actual content.
+dstFileName=CloverX64-"$BUILDTARGET"_"$TOOLCHAIN"-"$(grep -aEo "CloverBuildIdGrepTag: [^[:cntrl:]]*" < "$BUILD_DIR_ARCH"/CLOVERX64.efi | sed "s/CloverBuildIdGrepTag: //")"
+
+copyBin "$BUILD_DIR_ARCH"/CLOVERX64.efi ${WORKSPACE}/Build/"$dstFileName".efi
+rm -f ${WORKSPACE}/Build/"$dstFileName".zip
+zip ${WORKSPACE}/Build/"$dstFileName".zip ${WORKSPACE}/Build/"$dstFileName".efi
 
 if [[ -z $MODULEFILE  ]] && (( $NOBOOTFILES == 0 )); then
     MainPostBuildScript
